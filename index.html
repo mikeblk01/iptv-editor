@@ -10,27 +10,25 @@
 
 <h1>IPTV Manager PRO</h1>
 
-<input type="text" id="urlInput" placeholder="URL lista M3U">
-<button onclick="addList()">Agregar Lista</button>
+<input type="text" id="urlInput" placeholder="URL M3U">
+<button onclick="loadList()">Agregar Lista</button>
 
-<h2>Listas cargadas</h2>
-<div id="lists"></div>
-
-<h2>Canales seleccionados</h2>
-<button onclick="checkAllStreams()">Revisar estado</button>
-<button onclick="addManual()">Agregar manual</button>
+<button onclick="selectAll()">Seleccionar Todo</button>
+<button onclick="removeSelected()">Eliminar Seleccionados</button>
+<button onclick="checkAll()">Verificar Canales</button>
+<button onclick="addManual()">Agregar Canal Manual</button>
 <button onclick="exportM3U()">Exportar M3U</button>
 
-<table id="selectedTable">
+<table id="channels">
 <thead>
 <tr>
+<th>✔</th>
 <th>Nombre</th>
 <th>EPG</th>
 <th>Grupo</th>
 <th>Logo</th>
 <th>URL</th>
 <th>Estado</th>
-<th>❌</th>
 </tr>
 </thead>
 <tbody></tbody>
