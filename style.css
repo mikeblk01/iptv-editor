@@ -24,3 +24,9 @@ padding:8px;
 td{
 background:#222;
 }
+
+button{
+padding:10px;
+margin-right:10px;
+cursor:pointer;
+}
