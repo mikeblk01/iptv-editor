@@ -2,35 +2,32 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>M3U IPTV Editor</title>
+<title>IPTV Manager</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h1>Editor de Lista IPTV</h1>
+<h1>IPTV Manager</h1>
 
-<textarea id="input" placeholder="Pega aquí tu lista M3U"></textarea>
-
-<br><br>
-
-<button onclick="parseM3U()">Cargar Canales</button>
-<button onclick="downloadM3U()">Descargar Lista</button>
-
-<h2>Canales</h2>
+<input type="text" id="urlInput" placeholder="Pega URL M3U">
+<button onclick="loadFromURL()">Cargar Lista</button>
 
 <table id="channels">
 <thead>
 <tr>
+<th>✔</th>
 <th>Nombre</th>
-<th>EPG ID</th>
+<th>EPG</th>
 <th>Grupo</th>
+<th>Logo</th>
 <th>URL</th>
-<th>Estado</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
+
+<button onclick="exportConfig()">Guardar Selección</button>
 
 <script src="script.js"></script>
 
