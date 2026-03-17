@@ -1,11 +1,20 @@
-let channels = [];
+let allChannels = [];
 
-function parseM3U(){
+async function loadFromURL(){
 
-let text = document.getElementById("input").value;
+let url = document.getElementById("urlInput").value;
+
+let res = await fetch(url);
+let text = await res.text();
+
+parseM3U(text);
+
+}
+
+function parseM3U(text){
+
 let lines = text.split("\n");
-
-channels = [];
+allChannels = [];
 
 for(let i=0;i<lines.length;i++){
 
@@ -16,92 +25,78 @@ let url = lines[i+1];
 
 let name = info.split(",")[1];
 
-let groupMatch = info.match(/group-title="([^"]+)"/);
-let idMatch = info.match(/tvg-id="([^"]+)"/);
+let epg = (info.match(/tvg-id="([^"]+)"/)||[])[1] || "";
+let group = (info.match(/group-title="([^"]+)"/)||[])[1] || "";
+let logo = (info.match(/tvg-logo="([^"]+)"/)||[])[1] || "";
 
-let group = groupMatch ? groupMatch[1] : "";
-let epgid = idMatch ? idMatch[1] : "";
-
-channels.push({
-name:name,
-epgid:epgid,
-group:group,
-url:url
-});
+allChannels.push({name,epg,group,logo,url});
 
 }
 
 }
 
-renderTable();
+render();
 
 }
 
-function renderTable(){
+function render(){
 
 let table = document.querySelector("#channels tbody");
 table.innerHTML="";
 
-channels.forEach((c,i)=>{
+allChannels.forEach((c,i)=>{
 
-let row = `
+table.innerHTML += `
 <tr>
-<td contenteditable="true">${c.name}</td>
-<td contenteditable="true">${c.epgid}</td>
-<td contenteditable="true">${c.group}</td>
+<td><input type="checkbox" id="sel-${i}"></td>
+<td contenteditable>${c.name}</td>
+<td contenteditable>${c.epg}</td>
+<td contenteditable>${c.group}</td>
+<td contenteditable>${c.logo}</td>
 <td>${c.url}</td>
-<td id="status-${i}">⏳</td>
 </tr>
 `;
 
-table.innerHTML += row;
-
-checkStream(c.url,i);
-
 });
 
 }
 
-async function checkStream(url,index){
-
-try{
-
-let response = await fetch(url,{method:"HEAD",mode:"no-cors"});
-
-document.getElementById("status-"+index).innerHTML="🟢";
-
-}catch{
-
-document.getElementById("status-"+index).innerHTML="🔴";
-
-}
-
-}
-
-function downloadM3U(){
+function exportConfig(){
 
 let rows = document.querySelectorAll("#channels tbody tr");
 
-let output="#EXTM3U\n";
+let selected = [];
 
-rows.forEach(row=>{
+rows.forEach((row,i)=>{
 
-let name=row.children[0].innerText;
-let epgid=row.children[1].innerText;
-let group=row.children[2].innerText;
-let url=row.children[3].innerText;
+let checked = row.querySelector("input").checked;
 
-output+=`#EXTINF:-1 tvg-id="${epgid}" group-title="${group}",${name}\n`;
-output+=`${url}\n`;
+if(checked){
+
+selected.push({
+name: row.children[1].innerText,
+epg: row.children[2].innerText,
+group: row.children[3].innerText,
+logo: row.children[4].innerText,
+url: row.children[5].innerText
+});
+
+}
 
 });
 
-let blob=new Blob([output],{type:"text/plain"});
+downloadJSON(selected);
 
-let a=document.createElement("a");
+}
 
-a.href=URL.createObjectURL(blob);
-a.download="playlist.m3u";
+function downloadJSON(data){
+
+let blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+
+let a = document.createElement("a");
+
+a.href = URL.createObjectURL(blob);
+a.download = "config.json";
 a.click();
 
 }
