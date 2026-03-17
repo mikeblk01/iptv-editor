@@ -50,12 +50,31 @@ let row = `
 <td contenteditable="true">${c.epgid}</td>
 <td contenteditable="true">${c.group}</td>
 <td>${c.url}</td>
+<td id="status-${i}">⏳</td>
 </tr>
 `;
 
 table.innerHTML += row;
 
+checkStream(c.url,i);
+
 });
+
+}
+
+async function checkStream(url,index){
+
+try{
+
+let response = await fetch(url,{method:"HEAD",mode:"no-cors"});
+
+document.getElementById("status-"+index).innerHTML="🟢";
+
+}catch{
+
+document.getElementById("status-"+index).innerHTML="🔴";
+
+}
 
 }
 
