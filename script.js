@@ -1,28 +1,21 @@
-let lists = [];
-let selected = [];
+let channels = [];
 
-// agregar lista
-async function addList(){
+async function loadList(){
 
 let url = document.getElementById("urlInput").value;
 
 let proxy = "https://api.allorigins.win/raw?url=";
+
 let res = await fetch(proxy + encodeURIComponent(url));
 let text = await res.text();
 
-let channels = parseM3U(text);
-
-lists.push({url,channels});
-
-renderLists();
+parseM3U(text);
 
 }
 
-// parsear M3U
 function parseM3U(text){
 
 let lines = text.split("\n");
-let ch = [];
 
 for(let i=0;i<lines.length;i++){
 
@@ -32,93 +25,37 @@ let info = lines[i];
 let url = lines[i+1];
 
 let name = info.split(",")[1];
-let epg = (info.match(/tvg-id="([^"]+)"/)||[])[1]||"";
-let group = (info.match(/group-title="([^"]+)"/)||[])[1]||"";
-let logo = (info.match(/tvg-logo="([^"]+)"/)||[])[1]||"";
 
-ch.push({name,epg,group,logo,url});
+let epg = (info.match(/tvg-id="([^"]+)"/)||[])[1] || "";
+let group = (info.match(/group-title="([^"]+)"/)||[])[1] || "";
+let logo = (info.match(/tvg-logo="([^"]+)"/)||[])[1] || "";
 
-}
-
-}
-
-return ch;
+channels.push({name,epg,group,logo,url,status:"⏳"});
 
 }
 
-// render listas
-function renderLists(){
+}
 
-let container = document.getElementById("lists");
-container.innerHTML="";
-
-lists.forEach((list,li)=>{
-
-let div = document.createElement("div");
-
-div.innerHTML = `<h3>Lista ${li+1} 
-<button onclick="removeList(${li})">❌</button></h3>`;
-
-let table = `<table><tr>
-<th>✔</th><th>Nombre</th><th>Grupo</th></tr>`;
-
-list.channels.forEach((c,i)=>{
-
-table += `<tr>
-<td><input type="checkbox" onchange="toggleChannel(${li},${i},this)"></td>
-<td>${c.name}</td>
-<td>${c.group}</td>
-</tr>`;
-
-});
-
-table += "</table>";
-
-div.innerHTML += table;
-container.appendChild(div);
-
-});
+render();
 
 }
 
-// eliminar lista
-function removeList(i){
-lists.splice(i,1);
-renderLists();
-}
+function render(){
 
-// seleccionar canal
-function toggleChannel(li,ci,el){
-
-let c = lists[li].channels[ci];
-
-if(el.checked){
-selected.push({...c});
-}else{
-selected = selected.filter(x=>x.url !== c.url);
-}
-
-renderSelected();
-
-}
-
-// render seleccionados
-function renderSelected(){
-
-let table = document.querySelector("#selectedTable tbody");
+let table = document.querySelector("#channels tbody");
 table.innerHTML="";
 
-selected.forEach((c,i)=>{
+channels.forEach((c,i)=>{
 
 table.innerHTML += `
 <tr>
+<td><input type="checkbox" data-i="${i}"></td>
 <td contenteditable>${c.name}</td>
 <td contenteditable>${c.epg}</td>
 <td contenteditable>${c.group}</td>
 <td contenteditable>${c.logo}</td>
 <td>${c.url}</td>
-<td id="st-${i}">-</td>
-<td><button onclick="removeChannel(${i})">❌</button></td>
+<td id="status-${i}">${c.status}</td>
 </tr>
 `;
 
@@ -126,84 +63,106 @@ table.innerHTML += `
 
 }
 
-// eliminar canal
-function removeChannel(i){
-selected.splice(i,1);
-renderSelected();
+function selectAll(){
+
+document.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+cb.checked = true;
+});
+
 }
 
-// agregar manual
+function removeSelected(){
+
+let newList = [];
+
+document.querySelectorAll("#channels tbody tr").forEach((row,i)=>{
+
+let checked = row.querySelector("input").checked;
+
+if(!checked){
+newList.push(channels[i]);
+}
+
+});
+
+channels = newList;
+render();
+
+}
+
 function addManual(){
 
-selected.push({
-name:"Nuevo canal",
+channels.push({
+name:"Nuevo Canal",
 epg:"",
-group:"",
+group:"Manual",
 logo:"",
-url:"http://"
+url:"http://",
+status:""
 });
 
-renderSelected();
+render();
 
 }
 
-// exportar M3U
+async function checkStream(url,index){
+
+let video = document.createElement("video");
+
+video.src = url;
+video.muted = true;
+
+let timeout = setTimeout(()=>{
+document.getElementById("status-"+index).innerHTML="🔴";
+video.remove();
+},7000);
+
+video.onloadeddata = ()=>{
+clearTimeout(timeout);
+document.getElementById("status-"+index).innerHTML="🟢";
+video.remove();
+};
+
+video.onerror = ()=>{
+clearTimeout(timeout);
+document.getElementById("status-"+index).innerHTML="🔴";
+video.remove();
+};
+
+}
+
+function checkAll(){
+
+channels.forEach((c,i)=>{
+checkStream(c.url,i);
+});
+
+}
+
 function exportM3U(){
 
-let out="#EXTM3U\n";
+let rows = document.querySelectorAll("#channels tbody tr");
 
-let rows=document.querySelectorAll("#selectedTable tbody tr");
+let output = "#EXTM3U\n";
 
-rows.forEach(r=>{
+rows.forEach(row=>{
 
-let name=r.children[0].innerText;
-let epg=r.children[1].innerText;
-let group=r.children[2].innerText;
-let logo=r.children[3].innerText;
-let url=r.children[4].innerText;
+let name=row.children[1].innerText;
+let epg=row.children[2].innerText;
+let group=row.children[3].innerText;
+let logo=row.children[4].innerText;
+let url=row.children[5].innerText;
 
-out+=`#EXTINF:-1 tvg-id="${epg}" tvg-logo="${logo}" group-title="${group}",${name}\n`;
-out+=url+"\n";
+output+=`#EXTINF:-1 tvg-id="${epg}" tvg-logo="${logo}" group-title="${group}",${name}\n`;
+output+=`${url}\n`;
 
 });
 
-let blob=new Blob([out],{type:"text/plain"});
+let blob=new Blob([output],{type:"text/plain"});
+
 let a=document.createElement("a");
 a.href=URL.createObjectURL(blob);
 a.download="playlist.m3u";
 a.click();
 
-}
-
-// revisar streams
-async function checkStream(url,i){
-
-let video=document.createElement("video");
-video.src=url;
-
-let timeout=setTimeout(()=>{
-video.remove();
-document.getElementById("st-"+i).innerHTML="🔴";
-},7000);
-
-video.onloadeddata=()=>{
-clearTimeout(timeout);
-video.remove();
-document.getElementById("st-"+i).innerHTML="🟢";
-};
-
-video.onerror=()=>{
-clearTimeout(timeout);
-video.remove();
-document.getElementById("st-"+i).innerHTML="🔴";
-};
-
-}
-
-// revisar todos
-function checkAllStreams(){
-selected.forEach((c,i)=>{
-document.getElementById("st-"+i).innerHTML="⏳";
-checkStream(c.url,i);
-});
 }
